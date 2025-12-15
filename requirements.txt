@@ -1,0 +1,17 @@
+# Core dependencies
+numpy
+pillow
+psutil
+onnx
+onnxruntime
+
+# Model handling (only needed for export / pruning)
+torch
+torchvision
+
+# Optional (only if using ML-based selector)
+scikit-learn
+
+# Optional tools
+requests
+
