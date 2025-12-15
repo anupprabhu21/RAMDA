@@ -1,6 +1,4 @@
-<<<<<<< HEAD
-# resource-aware-edge-agent
-=======
+
 # Resource-Aware Edge Model Deployment Agent
 
 ## Overview
@@ -23,4 +21,4 @@ resource-aware-edge-agent/
 ├── outputs/
 ├── requirements.txt
 └── README.md
->>>>>>> 3f11c9d7 (Initial commit: Resource-aware edge AI deployment agent)
+
