@@ -1,0 +1,9 @@
+numpy
+pillow
+psutil
+onnxruntime            # lightweight ONNX inference on CPU
+torch                 # only needed if you plan to export or fine-tune
+torchvision
+openvino-runtime      # for OpenVINO inference (pip install openvino-runtime==2023.4.0 etc.)
+requests
+scikit-learn          # optional if you use RF selector
