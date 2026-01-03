@@ -65,11 +65,14 @@ resource-aware-edge-agent/
 
 
 ⚙️ Setup Instructions
+
 1️⃣ Clone Repository
+
 git clone https://github.com/<your-username>/resource-aware-edge-agent.git
 cd resource-aware-edge-agent
 
 2️⃣ One-Command Setup (Recommended)
+
 ./setup.sh
 
 
