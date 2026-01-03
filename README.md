@@ -23,10 +23,13 @@ Compare accuracy vs performance trade-offs across optimized model variants
 Demonstrate runtime decision logic driven by system telemetry
 
 🧠 Models Used
-Model Variant	Description	Purpose
-EfficientNet-B0 (FP32)	Full-precision CNN	High accuracy
-EfficientNet-B0 (INT8)	Quantized ONNX model	Faster inference, smaller size
-MobileNetV3 (Lightweight)	Architecture-level pruned model	Low power / constrained devices
+
+| Model Variant             | Description                     | Purpose                         |
+| ------------------------- | ------------------------------- | ------------------------------- |
+| EfficientNet-B0 (FP32)    | Full-precision CNN              | High accuracy                   |
+| EfficientNet-B0 (INT8)    | Quantized ONNX model            | Faster inference, smaller size  |
+| MobileNetV3 (Lightweight) | Architecture-level pruned model | Low power / constrained devices |
+
 
 Note: Pruning in this phase is architectural (lightweight network) rather than weight-level sparsity.
 
