@@ -35,17 +35,12 @@ Note: Pruning in this phase is architectural (lightweight network) rather than w
 
 🏗️ System Architecture (High Level)
 
-Input image is received
-
-System metrics are collected (CPU, memory)
-
-Deployment agent evaluates resource availability
-
-Best model variant is selected
-
-Inference is executed
-
-Prediction and performance metrics are logged
+1. Input image is received
+2. System metrics are collected (CPU, memory)
+3. Deployment agent evaluates resource availability
+4. Best model variant is selected
+5. Inference is executed
+6. Prediction and performance metrics are logged
 
 📁 Directory Structure
 resource-aware-edge-agent/
@@ -113,10 +108,12 @@ Execution latency
 Resource usage
 
 📊 Results Summary
-Model	Size	Inference Speed	Accuracy
-FP32	~21 MB	Slowest	Highest
-INT8	~5.6 MB	Faster	Slight drop
-Pruned	~21 MB	Fastest	Acceptable
+| Model  | Size    | Inference Speed | Accuracy    |
+| ------ | ------- | --------------- | ----------- |
+| FP32   | ~21 MB  | Slowest         | Highest     |
+| INT8   | ~5.6 MB | Faster          | Slight drop |
+| Pruned | ~21 MB  | Fastest         | Acceptable  |
+
 🧪 Execution Backends
 
 ONNX Runtime (CPU) – default & portable
