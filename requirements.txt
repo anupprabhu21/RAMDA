@@ -4,6 +4,7 @@ pillow
 psutil
 onnx
 onnxruntime
+streamlit
 
 # Model handling (only needed for export / pruning)
 torch
