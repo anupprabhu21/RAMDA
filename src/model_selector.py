@@ -1,41 +1,51 @@
 """
 model_selector.py
-Simple rule-based selector for minimal approach.
-You can replace or augment with an ML model (e.g., RandomForest) later.
-"""
-import json
 
-# Paths (relative)
+Resource-Aware Model Selection Module
+"""
+
+# -------------------------------
+# Model Paths (Relative)
+# -------------------------------
+
+# ONNX models (ONNX Runtime)
 MODEL_FP32_ONNX = "models/efficientNet-b0.onnx"
 MODEL_INT8_ONNX = "models/efficientnet-b0-int8.onnx"
 MODEL_PRUNED_ONNX = "models/mobilenet_v3_pruned.onnx"
 
-# Also include OpenVINO IR equivalents (same base names in models/openvino/)
+# OpenVINO IR models
 MODEL_FP32_OV = "models/openvino/efficientNet-b0.xml"
 MODEL_INT8_OV = "models/openvino/efficientnet-b0-int8.xml"
 MODEL_PRUNED_OV = "models/openvino/mobilenet_v3_pruned.xml"
 
+
 def select_model(telemetry, mode="pytorch"):
     """
-    Rule-based selection:
-    - If CPU < 50% and RAM > 1000MB => use FP32
-    - If CPU between 50-80% => use INT8
-    - If CPU > 80% or RAM < 400MB => use PRUNED
-    'mode' can be 'pytorch' (onnxruntime) or 'openvino' (OpenVINO IR)
-    Returns a dict with chosen model path and reason.
+    Select the best model based on system resources
     """
+
     cpu = telemetry["cpu_percent"]
     ram = telemetry["available_ram_mb"]
 
-    reason = ""
     if cpu < 50 and ram > 1000:
-        chosen = MODEL_FP32_OV if mode == "openvino" else MODEL_FP32_ONNX
-        reason = "low load -> FP32"
-    elif cpu < 80 and ram > 400:
-        chosen = MODEL_INT8_OV if mode == "openvino" else MODEL_INT8_ONNX
-        reason = "moderate load -> INT8"
-    else:
-        chosen = MODEL_PRUNED_OV if mode == "openvino" else MODEL_PRUNED_ONNX
-        reason = "high load -> pruned"
+        model_type = "FP32"
+        model_path = MODEL_FP32_OV if mode == "openvino" else MODEL_FP32_ONNX
+        reason = "Low CPU load and sufficient RAM -> FP32 selected"
 
-    return {"model_path": chosen, "reason": reason}
+    elif cpu < 80 and ram > 400:
+        model_type = "INT8"
+        model_path = MODEL_INT8_OV if mode == "openvino" else MODEL_INT8_ONNX
+        reason = "Moderate system load -> INT8 selected"
+
+    else:
+        model_type = "PRUNED"
+        model_path = MODEL_PRUNED_OV if mode == "openvino" else MODEL_PRUNED_ONNX
+        reason = "High CPU load or low RAM -> PRUNED selected"
+
+    return {
+        "model_type": model_type,
+        "model_path": model_path,
+        "cpu_percent": cpu,
+        "available_ram_mb": ram,
+        "reason": reason
+    }

@@ -7,88 +7,118 @@ import json
 import urllib.request
 
 # -------------------------------
-# Function to ensure labels exist
+# Global label cache (load once)
 # -------------------------------
+_LABELS = None
+
+
 def get_imagenet_labels(label_file="imagenet_labels.txt"):
+    global _LABELS
+
+    if _LABELS is not None:
+        return _LABELS
+
     if not os.path.exists(label_file):
         print(f"[INFO] '{label_file}' not found. Downloading...")
         url = "https://raw.githubusercontent.com/anishathalye/imagenet-simple-labels/master/imagenet-simple-labels.json"
         local_json = "imagenet_labels.json"
+
         urllib.request.urlretrieve(url, local_json)
-        with open(local_json) as f_json:
-            labels = json.load(f_json)
-        # Save as plain text
-        with open(label_file, "w") as f_txt:
+
+        with open(local_json) as f:
+            labels = json.load(f)
+
+        with open(label_file, "w") as f:
             for label in labels:
-                f_txt.write(label + "\n")
+                f.write(label + "\n")
+
         os.remove(local_json)
-        print(f"[INFO] Saved labels to '{label_file}'")
-    # Load labels
+        print(f"[INFO] Labels saved to '{label_file}'")
+
     with open(label_file) as f:
-        return [line.strip() for line in f.readlines()]
+        _LABELS = [line.strip() for line in f.readlines()]
+
+    return _LABELS
+
 
 # -------------------------------
 # Image Preprocessing
 # -------------------------------
 def preprocess_image(img_path, input_size=224):
-    img = Image.open(img_path).convert('RGB').resize((input_size, input_size))
+    img = Image.open(img_path).convert("RGB")
+    img = img.resize((input_size, input_size))
+
     arr = np.array(img).astype(np.float32) / 255.0
-    # Normalize with ImageNet mean/std
+
     mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-    std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+    std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+
     arr = (arr - mean) / std
-    # HWC -> CHW
-    arr = np.transpose(arr, (2, 0, 1))
-    arr = np.expand_dims(arr, axis=0).astype(np.float32)
-    return arr
+    arr = np.transpose(arr, (2, 0, 1))  # HWC → CHW
+    arr = np.expand_dims(arr, axis=0)
+
+    return arr.astype(np.float32)
+
 
 # -------------------------------
-# ONNX Inference
+# Softmax for confidence
 # -------------------------------
-def infer_onnx(model_path, img_path, input_name=None, label_file="imagenet_labels.txt"):
-    # Load labels
-    imagenet_labels = get_imagenet_labels(label_file)
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=1, keepdims=True)
 
-    # Load ONNX model
-    sess = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
-    if input_name is None:
-        input_name = sess.get_inputs()[0].name
 
-    # Preprocess image
-    input_data = preprocess_image(img_path)
+# -------------------------------
+# PyTorch / ONNX Runtime Inference
+# -------------------------------
+def infer_onnx(model_path, image_path):
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model not found: {model_path}")
 
-    # Run inference
-    start = time.time()
-    outputs = sess.run(None, {input_name: input_data})
-    latency_ms = (time.time() - start) * 1000.0
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image not found: {image_path}")
 
-    # Get predicted class index and confidence
+    labels = get_imagenet_labels()
+
+    session = ort.InferenceSession(
+        model_path,
+        providers=["CPUExecutionProvider"]
+    )
+
+    input_name = session.get_inputs()[0].name
+    input_tensor = preprocess_image(image_path)
+
+    start_time = time.time()
+    outputs = session.run(None, {input_name: input_tensor})
+    latency_ms = (time.time() - start_time) * 1000
+
     logits = outputs[0]
-    pred_idx = int(np.argmax(logits, axis=1)[0])
-    conf = float(np.max(logits))
-    pred_label = imagenet_labels[pred_idx]
+    probs = softmax(logits)
 
-    # Return result in desired JSON format
+    pred_idx = int(np.argmax(probs, axis=1)[0])
+    confidence = float(probs[0][pred_idx])
+    prediction = labels[pred_idx]
+
     return {
-        "result": {
-            "prediction": pred_label,
-            "confidence": conf,
-            "latency_ms": latency_ms,
-            "model": model_path
-        }
+        "mode": "pytorch",
+        "model_path": model_path,
+        "prediction": prediction,
+        "confidence": round(confidence, 4),
+        "latency_ms": round(latency_ms, 2)
     }
 
+
 # -------------------------------
-# Example usage
+# CLI support (keep this!)
 # -------------------------------
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="ONNX Inference")
-    parser.add_argument("--model", type=str, default="models/efficientNet-b0.onnx", help="ONNX model path")
-    parser.add_argument("--image", type=str, required=True, help="Image path")
+    parser = argparse.ArgumentParser(description="ONNX Runtime Inference")
+    parser.add_argument("--model", type=str, required=True)
+    parser.add_argument("--image", type=str, required=True)
+
     args = parser.parse_args()
 
-    out = infer_onnx(args.model, args.image)
-    print(json.dumps(out, indent=2))
-
+    output = infer_pytorch_onnx(args.model, args.image)
+    print(json.dumps(output, indent=2))
